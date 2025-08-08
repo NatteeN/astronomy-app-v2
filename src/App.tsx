@@ -17,7 +17,7 @@ import {
   Equator
 } from "astronomy-engine";
 import constellations from "./components/constellation_TH.json";
-import * as XLSX from "xlsx";
+// import * as XLSX from "xlsx";
 import "jspdf-autotable";
 import "./App.css";
 import axios from "axios";
@@ -250,12 +250,12 @@ const App: React.FC = () => {
     setDisplayYear(monthYear.year + 543);
   };
 
-  const exportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Astronomy Data");
-    XLSX.writeFile(workbook, "astronomy_data.xlsx");
-  };
+  // const exportToExcel = () => {
+  //   const worksheet = XLSX.utils.json_to_sheet(data);
+  //   const workbook = XLSX.utils.book_new();
+  //   XLSX.utils.book_append_sheet(workbook, worksheet, "Astronomy Data");
+  //   XLSX.writeFile(workbook, "astronomy_data.xlsx");
+  // };
 
   const monthMap: Record<string, string> = {
     "1": "มกราคม",
@@ -325,7 +325,7 @@ const App: React.FC = () => {
           isDataDisplayed={isDataDisplayed}
         />
       )}
-      <button onClick={exportToExcel}>Export to Excel</button>
+      {/* <button onClick={exportToExcel}>Export to Excel</button> */}
       <button onClick={() => window.print()}>พิมพ์</button>
       <BackToTop />
     </div>
