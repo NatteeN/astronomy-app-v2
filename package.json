@@ -12,8 +12,10 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.0.0",
     "astronomy-engine": "^2.1.19",
     "axios": "^1.11.0",
+    "date-fns": "^4.1.0",
     "gh-pages": "^6.3.0",
     "jspdf-autotable": "^5.0.2",
     "leaflet": "^1.9.4",

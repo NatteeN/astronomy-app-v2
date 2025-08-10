@@ -17,11 +17,11 @@ import {
   Equator
 } from "astronomy-engine";
 import constellations from "./components/constellation_TH.json";
-// import * as XLSX from "xlsx";
 import "jspdf-autotable";
 import "./App.css";
 import axios from "axios";
 import { Helmet } from "react-helmet";
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 interface Coordinates {
   lat: number;
@@ -49,6 +49,7 @@ interface CelestialData {
 
 const App: React.FC = () => {
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
+  const [initialPosition, setInitialPosition] = useState<Coordinates | null>(null);
   const [selectedObject, setSelectedObject] = useState<string>("");
   const [monthYear, setMonthYear] = useState<MonthYear>({ month: "", year: "" });
   const [data, setData] = useState<CelestialData[]>([]);
@@ -59,6 +60,7 @@ const App: React.FC = () => {
     monthYear.year ? monthYear.year + 543 : ""
   );
   const [cityName, setCityName] = useState("กรุณาเลือกสถานที่");
+  const [activeTab, setActiveTab] = useState<"overview" | "monthly" | "about">("overview");
 
   const objects = [
     "ดวงอาทิตย์",
@@ -89,6 +91,22 @@ const App: React.FC = () => {
 
     return `${degrees}°${minutes}'${seconds}"${direction}`;
   }
+
+  useEffect(() => {
+    // ดึงตำแหน่งครั้งแรกเมื่อโหลดเว็บ
+    if (!initialPosition && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setCoordinates(coords);
+          setInitialPosition(coords); // เซ็ตตำแหน่งเริ่มต้นที่นี่
+        },
+        (err) => {
+          console.warn("ไม่สามารถรับพิกัดได้:", err.message);
+        }
+      );
+    }
+  }, [initialPosition]);
 
   useEffect(() => {
     if (coordinates) {
@@ -130,21 +148,12 @@ const App: React.FC = () => {
   }, [coordinates]);
 
   const calculate = () => {
-    if (
-      !coordinates ||
-      !selectedObject ||
-      !monthYear.month ||
-      !monthYear.year
-    ) {
-      alert("กรุณาระบบข้อมูลให้ครบทุกอย่าง");
+    if (!coordinates || !selectedObject || !monthYear.month || !monthYear.year) {
+      alert("กรุณาระบุข้อมูลให้ครบถ้วน");
       return;
     }
 
-    const daysInMonth = new Date(
-      monthYear.year,
-      monthYear.month,
-      0
-    ).getDate();
+    const daysInMonth = new Date(monthYear.year, monthYear.month, 0).getDate();
     const celestialData: CelestialData[] = [];
     const observer = new Observer(coordinates.lat, coordinates.lng, 0);
 
@@ -152,10 +161,7 @@ const App: React.FC = () => {
       const date = new Date(monthYear.year, monthYear.month - 1, day);
       const astroTime = new AstroTime(date);
 
-      let specificData: CelestialData = {
-        date: date,
-        object: selectedObject
-      };
+      let specificData: CelestialData = { date, object: selectedObject };
 
       const bodyMap: Record<string, Body> = {
         "ดวงอาทิตย์": Body.Sun,
@@ -173,9 +179,8 @@ const App: React.FC = () => {
 
       if (body) {
         const riseDate = SearchRiseSet(body, observer, 1, astroTime, 1, 0);
-        if (riseDate) {
-          specificData.rise = riseDate.date;
-        }
+        if (riseDate) specificData.rise = riseDate.date;
+
         if (body === Body.Moon && (!riseDate || riseDate.date === null)) {
           specificData.riseAngle = null;
         } else if (riseDate) {
@@ -187,16 +192,12 @@ const App: React.FC = () => {
             equatorRise.dec,
             "jplhor"
           );
-
-          if (getHorizonRise) {
-            specificData.riseAngle = getHorizonRise.azimuth;
-          }
+          if (getHorizonRise) specificData.riseAngle = getHorizonRise.azimuth;
         }
 
         const setDate = SearchRiseSet(body, observer, -1, astroTime, 1, 0);
-        if (setDate) {
-          specificData.set = setDate.date;
-        }
+        if (setDate) specificData.set = setDate.date;
+
         if (body === Body.Moon && (!setDate || setDate.date === null)) {
           specificData.setAngle = null;
         } else if (setDate) {
@@ -208,30 +209,26 @@ const App: React.FC = () => {
             equatorSet.dec,
             "jplhor"
           );
-
-          if (getHorizonSet) {
-            specificData.setAngle = getHorizonSet.azimuth;
-          }
+          if (getHorizonSet) specificData.setAngle = getHorizonSet.azimuth;
         }
 
         if (selectedObject === "ดวงจันทร์") {
           const moonFraction = Illumination(body, astroTime);
-          if (moonFraction) {
-            specificData.phase = moonFraction.phase_fraction;
-          }
+          if (moonFraction) specificData.phase = moonFraction.phase_fraction;
         }
 
         const highestTime = SearchHourAngle(body, observer, 0, astroTime, 1);
         if (highestTime) {
           specificData.highestTime = highestTime.time.date;
-          specificData.altitude = Math.round(highestTime.hor.altitude * 100) / 100;
+          specificData.altitude =
+            Math.round(highestTime.hor.altitude * 100) / 100;
 
           const ra = highestTime.hor.ra;
           const dec = highestTime.hor.dec;
           const constellationInfo = Constellation(ra, dec);
-          const getThaiConstellationName = (englishName: string) => {
-            return (constellations as Record<string, string>)[englishName] || englishName;
-          };
+          const getThaiConstellationName = (englishName: string) =>
+            (constellations as Record<string, string>)[englishName] ||
+            englishName;
           specificData.constellation = getThaiConstellationName(
             constellationInfo.name
           );
@@ -245,17 +242,9 @@ const App: React.FC = () => {
 
     setData(celestialData);
     setIsDataDisplayed(true);
-
     setDisplayMonth(monthYear.month);
     setDisplayYear(monthYear.year + 543);
   };
-
-  // const exportToExcel = () => {
-  //   const worksheet = XLSX.utils.json_to_sheet(data);
-  //   const workbook = XLSX.utils.book_new();
-  //   XLSX.utils.book_append_sheet(workbook, worksheet, "Astronomy Data");
-  //   XLSX.writeFile(workbook, "astronomy_data.xlsx");
-  // };
 
   const monthMap: Record<string, string> = {
     "1": "มกราคม",
@@ -271,62 +260,170 @@ const App: React.FC = () => {
     "11": "พฤศจิกายน",
     "12": "ธันวาคม"
   };
-
   const THmonth = displayMonth ? monthMap[String(displayMonth)] : "";
 
   return (
     <div>
       <Helmet>
-        <title>ค้นหาเวลาขึ้นตกของวัตถุท้องฟ้า</title>
+        <title>รายละเอียดของวัตถุท้องฟ้ารายเดือน</title>
       </Helmet>
-      <h2>ค้นหาเวลาขึ้นตกของวัตถุท้องฟ้า</h2>
+
+      {/* ส่วนเลือกตำแหน่ง */}
       <section className="location">
         <div className="location">
-          <button className="location-button" onClick={() => setIsModalOpen(true)}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              width="24"
-              height="24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 2C8.686 2 6 5.372 6 9c0 4.418 6 11 6 11s6-6.582 6-11c0-3.628-2.686-7-6-7zm0 3a3 3 0 100 6 3 3 0 000-6z"
-              />
-            </svg>
+          <strong>ตำแหน่งที่ตั้งของคุณ: </strong>
+          {cityName}
+          {" "}
+          <button className="location-button" onClick={() => setIsModalOpen(true)} title="เลือกตำแหน่ง">
+            <i className="fa-solid fa-location-dot"></i>
           </button>
           <Modal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             setCoordinates={setCoordinates}
-          />{" "}
-          {cityName}
+            currentPosition={initialPosition}
+          />
         </div>
       </section>
-      <label>เลือกวัตถุและเดือน-ปีที่ต้องการทราบข้อมูล</label>
-      <section className="dropdown">
-        <Dropdown options={objects} onChange={handleObjectChange} label="วัตถุท้องฟ้า" />
-        <MonthYearPicker setSelectedMonthYear={setMonthYear} />
-      </section>
-      <button onClick={calculate}>แสดงข้อมูล</button>
-      {isDataDisplayed && selectedObject && (
-        <h3>
-          ตารางแสดงข้อมูลของ{selectedObject} เดือน{THmonth} ปี {displayYear}
-        </h3>
+
+      {/* เส้นแบ่ง */}
+      <hr className="section-divider" />
+
+      {/* Tabs */}
+      <div className="tabs">
+        {["overview", "monthly", "about"].map((tab) => (
+          <button
+            key={tab}
+            className={`tab ${activeTab === tab ? "active" : ""}`}
+            onClick={() => {
+              if (activeTab !== tab) {
+                setActiveTab(tab as "overview" | "monthly" | "about");
+              }
+            }}
+            style={{ cursor: activeTab === tab ? "default" : "pointer" }}
+            // disabled={activeTab === tab} // ถ้าอยากให้ disabled ด้วยก็ใส่ได้ (จะเป็นสีจางลง)
+          >
+            {{
+              overview: "ภาพรวม",
+              monthly: "ข้อมูลเวลาขึ้นตกของวัตถุท้องฟ้ารายเดือน",
+              about: "เกี่ยวกับเว็บ",
+            }[tab]}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === "overview" && (
+        <div>
+          <h2>ภาพรวมวัตถุท้องฟ้าในแต่ละค่ำคืน (เร็ว ๆ นี้)</h2>
+        </div>
       )}
-      {isDataDisplayed && data.length > 0 && (
-        <DataTable
-          data={data}
-          selectedObject={selectedObject}
-          isDataDisplayed={isDataDisplayed}
-        />
+
+      {activeTab === "monthly" && (
+        <div className="content-in-tab" style={{ width: "85vw", margin: "0 auto" }}>
+          <section
+            className="dropdown"
+            style={{
+              display: "flex",
+              alignItems: "center",  // แก้ตรงนี้ ให้ปุ่มกับ dropdown อยู่ระดับกลางแนวตั้ง
+              gap: "1rem",
+              marginBottom: "1rem",
+            }}
+          >
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              <label
+                htmlFor="object-select"
+                style={{ marginBottom: "0.3rem", fontWeight: "bold" }}
+              >
+                วัตถุท้องฟ้า
+              </label>
+              {/* <Dropdown
+                id="object-select"
+                options={objects}
+                onChange={handleObjectChange}
+                label=""
+                value={selectedObject}
+              /> */}
+              <Dropdown
+                options={objects}
+                onChange={handleObjectChange}
+                label=""
+              />
+            </div>
+
+            <div
+              style={{
+                flex: "0 0 150px", // fix width
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <label
+                htmlFor="month-year-picker"
+                style={{ marginBottom: "0.3rem", fontWeight: "bold" }}
+              >
+                เดือนปี
+              </label>
+              {/* <MonthYearPicker
+                id="month-year-picker"
+                setSelectedMonthYear={setMonthYear}
+                selectedMonthYear={monthYear}
+              /> */}
+              <MonthYearPicker
+                setSelectedMonthYear={setMonthYear}
+              />
+            </div>
+
+            {/* ปุ่มแสดงข้อมูล */}
+            <div>
+              <button
+                onClick={calculate}
+                style={{ padding: "0.2rem 1rem", height: "2.2rem", margin: "1rem 0 0 1rem" /* กำหนดความสูงให้ปุ่มเท่ากับ dropdown */ }}
+              >
+                แสดงข้อมูล
+              </button>
+            </div>
+          </section>
+
+          {isDataDisplayed && selectedObject && (
+            <>
+              <h3>
+                ตารางแสดงข้อมูลของ{selectedObject} เดือน{THmonth} ปี {displayYear}
+              </h3>
+
+              {data.length > 0 && (
+                <>
+                  <DataTable
+                    data={data}
+                    selectedObject={selectedObject}
+                    isDataDisplayed={isDataDisplayed}
+                  />
+
+                  <button
+                    onClick={() => window.print()}
+                    style={{ marginTop: "1rem", marginBottom: "1rem", padding: "0.5rem 1rem", display: "block", margin: "1 auto" }}
+                  >
+                    พิมพ์หน้านี้
+                  </button>
+                </>
+              )}
+            </>
+          )}
+
+          {!isDataDisplayed && (
+            <p style={{ marginBottom: "1rem", color: "#555", textAlign: "center" }}>
+              กรุณาเลือกวัตถุท้องฟ้าและเดือนปีที่ต้องการทราบข้อมูลแล้วกด "แสดงข้อมูล" เพื่อดูข้อมูลรายเดือนของวัตถุท้องฟ้า
+            </p>
+          )}
+        </div>
       )}
-      {/* <button onClick={exportToExcel}>Export to Excel</button> */}
-      <button onClick={() => window.print()}>พิมพ์</button>
+
+      {activeTab === "about" && (
+        <div>
+          <h2>เกี่ยวกับเว็บ (เร็ว ๆ นี้)</h2>
+        </div>
+      )}
+
       <BackToTop />
     </div>
   );

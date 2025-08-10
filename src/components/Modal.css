@@ -29,10 +29,23 @@
     position: absolute;
     top: 10px;
     right: 10px;
-    background-color: green;
+    background-color: red;
     color: white;
     border: none;
     padding: 10px 15px;
+    cursor: pointer;
+    z-index: 1001;
+    border-radius: 10%;
+  }
+
+  .current-location-button {
+    position: absolute;
+    top: 55px;
+    right: 10px;
+    background-color: white;
+    color: white;
+    border: none;
+    padding: 10px 11px;
     cursor: pointer;
     z-index: 1001;
     border-radius: 10%;
@@ -54,3 +67,7 @@
     background-color: rgba(255, 255, 255, 0.4);
     border-radius: 5px;
   }
+
+  .black-icon {
+  color: black;
+}

@@ -35,6 +35,7 @@ h2, h3 {
 
 .dropdown {
   font-family: 'Anuphan', sans-serif;
+  background-color: #fff;
 }
 
 .location {
@@ -126,6 +127,8 @@ input, select {
   border-radius: 4px;
   font-size: 1rem;
   margin: 5px 0 15px 0;
+  background-color: #fff; /* เพิ่มบรรทัดนี้ */
+  color: #333; /* เพิ่มบรรทัดนี้ */
 }
 
 .custom-date-input {
@@ -159,4 +162,70 @@ input, select {
   button, .non-printable {
       display: none;
   }
+  button.non-printable {
+    display: none;
+  }
+  .dropdown {
+    display: none !important;
+  }
+  thead tr th {
+    position: static !important; /* ยกเลิก sticky */
+    background-color: #f8f8f8; /* หรือสีพื้นหลังที่ต้องการ */
+    -webkit-print-color-adjust: exact; /* ให้สีแสดงตอนพิมพ์ */
+    print-color-adjust: exact; /* Standard property for compatibility */
+  }
+  thead tr:nth-child(2) th {
+    position: static !important;
+    background-color: #f2f2f2;
+    print-color-adjust: exact;
+  }
+}
+
+.section-divider {
+  width: 100vw;
+  border: none;
+  border-top: 1px solid #ccc;
+  margin: 1rem auto;
+}
+
+.tabs {
+  width: 85vw;
+  margin: 1rem auto;
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  border-bottom: 1px solid #ccc;
+}
+
+.tab {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  width: 100%;
+  border: 1px solid #ccc;
+  border-bottom: none;
+  background: #f8f8f8;
+  cursor: pointer;
+  border-radius: 5px 5px 5px 5px;
+  transition: background 0.2s;
+  color: #333;
+}
+
+.tab:hover {
+  background: #eaeaea;
+}
+
+.tab.active {
+  cursor: default;
+  background: white;
+  font-weight: bold;
+  border-bottom: 1px solid white; /* ให้ดูเป็น active */
+}
+
+.content-in-tab {
+  width: 85vw;
+  margin: 0 auto;
+}
+
+.react-datepicker-popper {
+  z-index: 9999 !important; /* ให้สูงกว่าหัวตาราง */
 }
